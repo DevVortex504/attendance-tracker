@@ -1,0 +1,42 @@
+name: attendance-tracker
+region: nyc
+
+services:
+  - name: backend
+    github:
+      repo: DevVortex504/attendance-tracker
+      branch: main
+      deploy_on_push: true
+    source_dir: attendance_backend
+    build_command: pip install -r requirements.txt && python manage.py collectstatic --noinput
+    run_command: gunicorn attendance_backend.wsgi:application --bind 0.0.0.0:$PORT
+    environment_slug: python
+    instance_count: 1
+    instance_size_slug: apps-s-1vcpu-0.5gb
+    http_port: 8080
+    envs:
+      - key: DJANGO_SETTINGS_MODULE
+        value: attendance_backend.settings_prod
+      - key: DEBUG
+        value: "False"
+      - key: SECRET_KEY
+        scope: RUN_TIME
+        type: SECRET
+      - key: ALLOWED_HOSTS
+        value: ${APP_DOMAIN}
+      - key: DATABASE_URL
+        scope: RUN_TIME
+        type: SECRET
+
+static_sites:
+  - name: frontend
+    github:
+      repo: DevVortex504/attendance-tracker
+      branch: main
+      deploy_on_push: true
+    source_dir: attendance-frontend
+    build_command: npm install && npm run build
+    output_dir: dist
+    envs:
+      - key: VITE_API_URL
+        value: ${backend.PUBLIC_URL}
